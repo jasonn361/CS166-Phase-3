@@ -361,7 +361,15 @@ public class Amazon {
          String latitude = in.readLine();       //enter lat value between [0.0, 100.0]
          System.out.print("\tEnter longitude: ");  //enter long value between [0.0, 100.0]
          String longitude = in.readLine();
-	
+	 
+	 // Check for duplicate names
+         String checkQuery = String.format("SELECT * FROM USERS WHERE name = '%s'", name);
+	 int userCount = esql.executeQuery(checkQuery);
+         if(userCount > 0) {
+		 System.out.println("Error: User name already exists.");
+                 return;
+         }
+	 
 	 // Check if password matches name
 	 if (password.equals(name)) {
 		 System.err.println("Error: Password should not be the same as the user name.");
