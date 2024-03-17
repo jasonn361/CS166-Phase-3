@@ -461,7 +461,7 @@ public class Amazon {
 
 		   System.out.println("Stores within 30 miles:");
 		   boolean found = false;
-		   System.out.printf("%-10s %-10s\n", "Store ID", "Distance");
+		   System.out.printf("%-10s %-10s %-10s\n", "Store ID", "Latitude", "Longitude");
 		   for (List<String> store : storeData) {
 			   int storeID = Integer.parseInt(store.get(0));
 			   double storeLat = Double.parseDouble(store.get(1));
@@ -471,7 +471,7 @@ public class Amazon {
 			   double distance = esql.calculateDistance(userLat, userLong, storeLat, storeLong);
 			   if (distance <= 30.0) {
 				   found =true;
-				   System.out.printf("%-10d %-10.2f miles\n", storeID, distance);
+				   System.out.printf("%-10d %-10.6f %10.6f \n", storeID, storeLat, storeLong);
 			   }
 		   }
 		   if (!found) {
@@ -483,8 +483,8 @@ public class Amazon {
    }
 
    /*
-    *  View products available in a specific store. Validate the store ID input
-    *  */
+    * View products available in a specific store. Validate the store ID input
+    */
    public static void viewProducts(Amazon esql) {
 	   try {
 		   System.out.print("\tEnter Store ID: ");
@@ -505,8 +505,59 @@ public class Amazon {
 	   }
    }
 
+   /*
+    * Allows users to place an order, checks for valid store ID, product name, and units.
+    * Additionally, verifies if the store has the product in stock and sufficient quantity
+    * before placing the order.
+    */
+   public static void placeOrder(Amazon esql) {
+	   try {
+		   System.out.print("\tEnter Store ID: ");
+		   String storeIdInput = in.readLine().trim();
+		   if (storeIdInput.isEmpty() || !storeIdInput.matches("\\d+")) {
+			   System.err.println("Error: Invalid Store ID.");
+			   return;
+		   }
+		   int storeID = Integer.parseInt(storeIdInput);
 
-   public static void placeOrder(Amazon esql) {}
+		   System.out.print("\tEnter Product Name: "); String productName = in.readLine().trim();
+		   if (productName.isEmpty()) {
+			   System.err.println("Error: Invalid Product Name.");
+			   return;
+		   }
+
+		   System.out.print("\tEnter Number of Units: ");
+		   String unitsInput = in.readLine().trim();
+		   if (unitsInput.isEmpty() || !unitsInput.matches("\\d+") || Integer.parseInt(unitsInput) < 1) {
+			   System.err.println("Error: Invalid Number of Units.");
+			   return;
+		   }
+		   int units = Integer.parseInt(unitsInput);
+
+		   // Check if the store hass the product and enough stock
+		   String query = String.format("SELECT numberOfUnits FROM Product WHERE storeID = %d AND productName = '%s'", storeID, productName);
+		   List<List<String>> productData = esql.executeQueryAndReturnResult(query);
+		   if (productData.isEmpty()) {
+			   System.err.println("Error: Product not found in the specified store.");
+			   return;
+		   }
+
+		   int availableUnits = Integer.parseInt(productData.get(0).get(0));
+		   if (units > availableUnits) {
+			   System.err.println("Error: Insufficient stock for the product.");
+			   return;
+		   }
+
+		   // Place the order
+		   query = String.format("INSERT INTO Orders (customerID, storeID, productName, unitsOrdered, orderTime) VALUES (%d, %d, '%s', %d, NOW())", loggedInUserID, storeID, productName, units);
+		   esql.executeUpdate(query);
+		   System.out.println ("Order successfully created!");
+	   } catch(Exception e) {
+		   System.err.println(e.getMessage());
+	   }
+   }
+
+
    public static void viewRecentOrders(Amazon esql) {}
    public static void updateProduct(Amazon esql) {}
    public static void viewRecentUpdates(Amazon esql) {}
