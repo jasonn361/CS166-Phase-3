@@ -230,6 +230,27 @@ public class Amazon {
       }//end try
    }//end cleanup
 
+   /*
+    * Menu for admins 
+    */
+   public static void adminMenu(Amazon esql) {
+	   	   try {
+			while (true) {
+				switch (readChoice()){
+					case 1: viewAllUsers(esql); break;
+			                case 2: updateUserInfo(esql); break;
+			        	case 3: viewAllProducts(esql); break;
+					case 4: updateProductInfo(esql); break;
+
+					case 20: loggedInUserID = -1; loggedInUserType = "customer"; break;
+					default : System.out.println("Unrecognized choice!"); break;
+				} 
+			}
+		} catch (Exception e) {
+			System.err.println(e.getMessage());
+		}
+   }
+
    /**
     * The main execution method
     *
@@ -277,7 +298,25 @@ public class Amazon {
               while(usermenu) {
 		      switch (loggedInUserType) {
 			      case "admin":
-				      break;
+				      System.out.println("MAIN MENU");
+				      System.out.println("---------");
+				      System.out.println("1. View All Users");
+				      System.out.println("2. Update User Information");
+				      System.out.println("3. View All Products");
+				      System.out.println("4. Update Product Information");
+				      
+				      System.out.println(".........................");
+				      System.out.println("20. Log out");
+				      switch (readChoice()) {
+					      case 1: viewAllUsers(esql); break;
+					      case 2: updateUserInfo(esql); break;
+					      case 3: viewAllProducts(esql); break;
+					      case 4: updateProductInfo(esql); break;
+					      
+					      case 20: usermenu = false; loggedInUserID = -1; loggedInUserType = "customer"; break;
+					      default : System.out.println("Unrecognized choice!"); break;
+				      } 
+				     break;
 			      case "manager":
 				      System.out.println("MAIN MENU");
                 		      System.out.println("---------");
@@ -673,8 +712,13 @@ public class Amazon {
 		   List<String> updates = new ArrayList<>();
 		   if (newUnits != null) updates.add("numberOfUnits = " + newUnits);
 		   if (newPrice != null) updates.add("pricePerUnit = " + newPrice);
-		   String updateString = String.join(", ", updates);
 
+		   if (updates.isEmpty()) {
+			   System.out.println("No updates to make.");
+			   return;
+		   }
+
+		   String updateString = String.join(", ", updates);
 		   query = String.format("UPDATE Product SET %s WHERE storeID = %d AND productName = '%s'", updateString, storeID, productName);
 		   esql.executeUpdate(query);
 		   System.out.println("Product information updated successfully!");
@@ -708,6 +752,247 @@ public class Amazon {
    public static void viewPopularProducts(Amazon esql) {}
    public static void viewPopularCustomers(Amazon esql) {}
    public static void placeProductSupplyRequests(Amazon esql) {}
+
+   /*
+    * Views all users in the database
+    */
+   public static void viewAllUsers(Amazon esql) {
+	   try {
+		   String query = "SELECT * FROM Users ORDER BY userID ASC";
+		   esql.executeQueryAndPrintResult(query);
+	   } catch (Exception e) {
+		   System.err.println(e.getMessage());
+	   }
+   }
+
+   /*
+    * Allows admin to update user information
+    */
+   public static void updateUserInfo(Amazon esql) {
+	   try {
+		   System.out.print("\tEnter User ID: ");
+		   String userIdInput = in.readLine().trim();
+		   if (userIdInput.isEmpty() || !userIdInput.matches("\\d+")) {
+			   System.err.println("Error: Invalid User ID.");
+			   return;
+		   }
+		   int userID = Integer.parseInt(userIdInput);
+
+		   System.out.print("\tEnter new name (leave empty if no change): ");
+	           String newName = in.readLine().trim();
+		   System.out.print("\tEnter new password (leave empty if no change): ");
+                   String newPassword = in.readLine().trim();
+	           System.out.print("\tEnter new latitude (leave empty if no change): ");
+		   String newLatitude = in.readLine().trim();
+		   System.out.print("\tEnter new longitude (leave empty if no change): ");
+	           String newLongitude = in.readLine().trim();
+		   System.out.print("\tEnter new type (customer, manager, admin; leave empty if no change): ");
+		   String newType = in.readLine().trim();
+
+		   // Check if user exists
+		   String query = String.format("SELECT * FROM Users WHERE userID = %d", userID);
+		   int userExists = esql.executeQuery(query);
+		   if (userExists < 1) {
+			   System.err.println("Error: User does not exist.");
+			   return;
+		   }
+
+		   List<String> updates = new ArrayList<>();
+		   String currName = null;
+		   if (!newName.isEmpty()) {
+			   query = String.format("SELECT name, password FROM Users WHERE name = '%s'", newName);
+		   	   List<List<String>> userData = esql.executeQueryAndReturnResult(query);
+			   if (!userData.isEmpty()) {
+				   currName = userData.get(0).get(0);
+				   if (userData.get(0).get(1).equals(newPassword)) {
+					   System.err.println("Error: This user already exists.");
+				   	   return;
+				   }
+			   }
+			   updates.add("name = '" + newName + "'");
+		   }
+		   if (!newPassword.isEmpty()) {
+			   if ((!newName.isEmpty() && newPassword.equals(newName)) || (newName.isEmpty() && newPassword.equals(currName))) {
+				   System.err.println("Error: Password should not be the same as the user name.");
+				   return;
+			   }
+
+		           boolean hasUpperCase = !newPassword.equals(newPassword.toLowerCase());
+			   boolean hasNumber = newPassword.matches(".*\\d.*");
+			   boolean hasSpecialChar = !newPassword.matches("[A-Za-z0-9]");
+			   if (newPassword.length() < 5 || !hasUpperCase || !hasNumber || !hasSpecialChar) {
+				   System.err.println("Error: Password must be between 5-11 characters and must have one capital letter, one number, and one special character.");
+				   return;
+			   }
+			   updates.add("password = '" + newPassword + "'");
+		   }
+		   if (!newLatitude.isEmpty()) {
+			   double lat = Double.parseDouble(newLatitude);
+			   if(lat <= 0.0 || lat >= 100.0) {
+				   System.err.println("Error: Latitude must be between 0.0 and 100.0.");
+				   return;
+			   }
+			   updates.add("latitude = " + newLatitude);
+		   }
+		   if (!newLongitude.isEmpty()) {
+			   double lon = Double.parseDouble(newLongitude);
+			   if(lon <= 0.0 || lon >= 100.0) {
+				   System.err.println("Error: Longitude must be between 0.0 and 100.0.");
+				   return;
+			   }
+			   updates.add("longitude = " + newLongitude);
+		   }
+
+		   if (updates.isEmpty()) {
+			   System.out.println("No updates to make.");
+			   return;
+		   }
+
+		   String updateString = String.join(", ", updates);
+		   query = String.format("UPDATE USERS SET %s WHERE userID = %d", updateString, userID);
+		   esql.executeUpdate(query);
+		   System.out.println("User information updated successfully!");
+	   } catch (Exception e) {
+		   System.err.println(e.getMessage());
+	   }
+   }
+
+   /*
+    * Views all products in the database
+    */
+   public static void viewAllProducts(Amazon esql) {
+	   try { 
+		   String query = "SELECT * FROM Product ORDER BY storeID ASC";
+		   esql.executeQueryAndPrintResult(query);
+	   } catch (Exception e) {
+		   System.err.println(e.getMessage());
+	   }
+   }
+   
+   /*
+    * Allows admin to update product information.
+    */
+   public static void updateProductInfo(Amazon esql) {
+	   try {
+		   System.out.print("\tEnter Store ID: ");
+		   String storeIdInput = in.readLine().trim();
+		   if (storeIdInput.isEmpty() || !storeIdInput.matches("\\d+")) {
+			   System.err.println("Error: Invalid Store ID.");
+			   return;
+		   }
+		   int storeID = Integer.parseInt(storeIdInput);
+		   
+		   System.out.print("\tEnter Product Name: ");
+		   String productName = in.readLine().trim();
+		   if (productName.isEmpty()) {
+			   System.err.println("Error: Invalid Product Name.");
+			   return;
+		   }
+
+		   System.out.print("\tEnter New Store ID (leave empty if no change): ");
+		   String newStoreIdInput = in.readLine().trim();
+		   Integer newStoreID = null;
+		   if (!newStoreIdInput.isEmpty()) {
+			   if (!newStoreIdInput.matches("\\d+") || Integer.parseInt(newStoreIdInput) < 0) {
+				   System.err.println("Error: Invalid Store ID.");
+			   	   return;
+			   }
+			   newStoreID = Integer.parseInt(newStoreIdInput);
+		   }
+
+		   System.out.print("\tEnter New Product Name (leave empty if no change): ");
+		   String newProductNameInput = in.readLine().trim();
+		   String newProductName = null;
+		   if (!newProductNameInput.isEmpty()) {
+			   newProductName = newProductNameInput;
+		   }
+
+		   System.out.print("\tEnter New Number of Units (leave empty if no change): ");
+		   String newUnitsInput = in.readLine().trim();
+		   Integer newUnits = null;
+		   if (!newUnitsInput.isEmpty()) {
+			   if (!newUnitsInput.matches("\\d+") || Integer.parseInt(newUnitsInput) < 0) {
+				   System.err.println("Error: Invalid Number of Units.");
+			   	   return;
+			   }
+			   newUnits = Integer.parseInt(newUnitsInput);
+		   }
+
+  		   System.out.print("\tEnter New Price Per Unit (leave empty if no change): ");
+		   String newPriceInput = in.readLine().trim();
+		   Float newPrice = null;
+		   if (!newPriceInput.isEmpty()) {
+			   if (!newPriceInput.matches("[0-9]+(\\.[0-9]{1,2})?")) {
+				   System.err.println("Error: Invalid Price Per Unit.");
+				   return;
+			   }
+			   newPrice = Float.parseFloat(newPriceInput);
+		   }
+
+		   String query = String.format("SELECT * FROM Store WHERE storeID = %d", storeID);
+		   int storeExists = esql.executeQuery(query);
+		   if (storeExists < 1) {
+			   System.err.println("Error: Store does not exist.");
+			   return;
+		   }
+
+		   if (!newStoreIdInput.isEmpty()) {
+			   query = String.format("SELECT * FROM Store WHERE storeID = %d", newStoreID);
+			   storeExists = esql.executeQuery(query);
+			   if (storeExists < 1) {
+				   System.err.println("Error: New Store does not exist.");
+				   return;
+			   }
+		   }
+
+		   // Check if the current product exists in the current store
+		   query = String.format("SELECT * FROM Product WHERE storeID = %d AND productName = '%s'", storeID, productName);
+		   int productExists = esql.executeQuery(query);
+		   if (productExists < 1) {
+			   System.err.println("Error: Product not found in the specified store.");
+			   return;
+		   }
+
+		   // Check if the new store already has the current product
+		   if (!newStoreIdInput.isEmpty() && newProductNameInput.isEmpty()) {
+			   query = String.format("SELECT * FROM Product WHERE storeID = %d AND productName = '%s'", newStoreID, productName);
+			   productExists = esql.executeQuery(query);
+			   if (productExists > 0) {
+				   System.err.println("Error: New Store already has the product with the same name.");
+				   return;
+			   }
+		   } 
+
+		   // Check if the new or current store has a product wiht the new name
+		   if (!newProductName.equals(productName) || !newStoreIdInput.isEmpty()) {
+			   query = String.format("SELECT * FROM Product WHERE storeID IN (%d, %d) AND productName = '%s'", storeID, newStoreID, newProductName);
+			   productExists = esql.executeQuery(query);
+			   if (productExists > 0) {
+				   System.err.println("Error: One of the stores already has a product with the new name.");
+				   return;
+			   }
+		   }
+		   
+		   // Check if there is something to update
+		   List<String> updates = new ArrayList<>();
+		   if (newStoreID != null) updates.add("storeID = " + newStoreID);
+		   if (newProductName != null) updates.add("productName = " + newProductName);
+		   if (newUnits != null) updates.add("numberOfUnits = " + newUnits);
+		   if (newPrice != null) updates.add("pricePerUnit = " + newPrice);
+
+		   if (updates.isEmpty()) {
+			   System.out.println("No updates to make.");
+			   return;
+		   }
+
+		   String updateString = String.join(", ", updates);
+		   query = String.format("UPDATE Product SET %s WHERE storeID = %d AND productName = '%s'", updateString, storeID, productName);
+		   esql.executeUpdate(query);
+		   System.out.println("Product information updated successfully!");
+	   } catch (Exception e) {
+		   System.err.println(e.getMessage());
+	   }
+   }
 
 }//end Amazon
 
