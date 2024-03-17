@@ -683,7 +683,28 @@ public class Amazon {
 	   }
    }
 
-   public static void viewRecentUpdates(Amazon esql) {}
+   /*
+    * List the 5 most recents updates
+    */
+   public static void viewRecentUpdates(Amazon esql) {
+	   try {
+		   String query = String.format("SELECT * FROM ProductUpdates WHERE managerID = %d ORDER BY updatedOn DESC LIMIT 5", loggedInUserID);
+		   List<List<String>> updateLog = esql.executeQueryAndReturnResult(query);
+		   if (updateLog.isEmpty()) {
+			   System.out.println("No recent updates found.");
+			   return;
+		   }
+
+		   System.out.printf("%-20s %-20s %-20s %-20s\n", "Update Number", "Store ID", "Product Name", "Updated On");
+		   for (List<String> update : updateLog) {
+			   System.out.printf("%-20s %-20s %-20s %-20s\n", update.get(0), update.get(2), update.get(3), update.get(4));
+		   }
+	   } catch (Exception e) {
+		   System.err.println(e.getMessage());
+	   }
+   }
+
+
    public static void viewPopularProducts(Amazon esql) {}
    public static void viewPopularCustomers(Amazon esql) {}
    public static void placeProductSupplyRequests(Amazon esql) {}

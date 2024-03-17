@@ -17,11 +17,17 @@ FOR EACH ROW
 	EXECUTE PROCEDURE update_stock_after_order();
 
 
--- Updates Parts.numberOfUnits after a customer places a successful order
+-- Inserts the update to a product to the ProductUpdate table
 CREATE OR REPLACE FUNCTION log_product_update() RETURNS TRIGGER AS $$
+DECLARE
+	currentManagerID integer;
 BEGIN
-	INSERT INTO ProductUpdates(managerID, storeID, productName, updatedOn)
-	VALUE (NEW.managerID, NEW.storeID, NEW.productName, NOW());
+	SELECT managerID INTO currentManagerID FROM Store WHERE storeID = NEW.storeID;
+	
+	IF FOUND THEN
+		INSERT INTO ProductUpdates(managerID, storeID, productName, updatedOn)
+		VALUES (currentManagerID, NEW.storeID, NEW.productName, NOW());
+	END IF;
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
