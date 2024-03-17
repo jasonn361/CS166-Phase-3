@@ -442,7 +442,6 @@ public class Amazon {
 
    /*
     * Displays the list of stores within a 3-mile radius from the user's location.
-    * @return list of stores or null is userId does not exist
     * */
    public static void viewStores(Amazon esql) {
 	   try {
@@ -450,7 +449,7 @@ public class Amazon {
 		   String query = String.format("SELECT latitude, longitude FROM Users WHERE userID = '%s'", loggedInUserID);
 		   List<List<String>> userData = esql.executeQueryAndReturnResult(query);
 		   if (userData.isEmpty()) {
-			   System.err.println("User not found");
+			   System.err.println("Error: User not found");
 			   return;
 		   }
 		   double userLat = Double.parseDouble(userData.get(0).get(0));
@@ -462,6 +461,7 @@ public class Amazon {
 
 		   System.out.println("Stores within 30 miles:");
 		   boolean found = false;
+		   System.out.printf("%-10s %-10s\n", "Store ID", "Distance");
 		   for (List<String> store : storeData) {
 			   int storeID = Integer.parseInt(store.get(0));
 			   double storeLat = Double.parseDouble(store.get(1));
@@ -471,11 +471,11 @@ public class Amazon {
 			   double distance = esql.calculateDistance(userLat, userLong, storeLat, storeLong);
 			   if (distance <= 30.0) {
 				   found =true;
-				   System.out.println("Store ID: " + storeID + " | Distance: " + distance + " miles");
+				   System.out.printf("%-10d %-10.2f miles\n", storeID, distance);
 			   }
 		   }
 		   if (!found) {
-			   System.err.println("Error: No stores found within 30 miles.");
+			   System.out.println("No stores found within 30 miles.");
 		   }
 	   } catch(Exception e) {
 		   System.err.println(e.getMessage());
@@ -484,8 +484,28 @@ public class Amazon {
 
    /*
     *  View products available in a specific store. Validate the store ID input
-    *  @
-   public static void viewProducts(Amazon esql) {}
+    *  */
+   public static void viewProducts(Amazon esql) {
+	   try {
+		   System.out.print("\tEnter Store ID: ");
+		   String storeIdInput = in.readLine().trim();
+		   if (storeIdInput.isEmpty() || !storeIdInput.matches("\\d+")) { // Checks if input is a number
+			   System.err.println("Error: Invalid Store ID.");
+			   return;
+		   }
+
+		   int storeID = Integer.parseInt(storeIdInput);
+		   String query = String.format("SELECT productName, numberOfUnits, pricePerUnit FROM Product WHERE storeID = %d", storeID);
+		   int productCount = esql.executeQueryAndPrintResult(query);
+		   if (productCount == 0) {
+			   System.out.println("No products found for this store.");
+		   }
+	   } catch(Exception e) {
+		   System.err.println(e.getMessage());
+	   }
+   }
+
+
    public static void placeOrder(Amazon esql) {}
    public static void viewRecentOrders(Amazon esql) {}
    public static void updateProduct(Amazon esql) {}
