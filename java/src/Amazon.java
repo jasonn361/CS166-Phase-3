@@ -295,21 +295,20 @@ public class Amazon {
 
 				      System.out.println(".........................");
 				      System.out.println("20. Log out");
-				     switch (readChoice()){
-					     case 1: viewStores(esql); break;
-			   		     case 2: viewProducts(esql); break;
-					     case 3: placeOrder(esql); break;
-					     case 4: viewRecentOrders(esql); break;
-					     case 5: updateProduct(esql); break;
-					     case 6: viewRecentUpdates(esql); break;
-					     case 7: viewPopularProducts(esql); break;
-					     case 8: viewPopularCustomers(esql); break;
-					     case 9: placeProductSupplyRequests(esql); break;
+				      switch (readChoice()){
+					      case 1: viewStores(esql); break;
+			   		      case 2: viewProducts(esql); break;
+					      case 3: placeOrder(esql); break;
+					      case 4: viewRecentOrders(esql); break;
+					      case 5: updateProduct(esql); break;
+					      case 6: viewRecentUpdates(esql); break;
+					      case 7: viewPopularProducts(esql); break;
+					      case 8: viewPopularCustomers(esql); break;
+					      case 9: placeProductSupplyRequests(esql); break;
 
-					     case 20: usermenu = false; loggedInUserID = -1; loggedInUserType = "customer"; break;
-					     default : System.out.println("Unrecognized choice!"); break;
-				     }
-			      
+					      case 20: usermenu = false; loggedInUserID = -1; loggedInUserType = "customer"; break;
+					      default : System.out.println("Unrecognized choice!"); break;
+				      } 
 			      case "customer":
 				      System.out.println("MAIN MENU");
                 		      System.out.println("---------");
@@ -320,15 +319,15 @@ public class Amazon {
 
 				      System.out.println(".........................");
 				      System.out.println("20. Log out");
-				     switch (readChoice()){
-					     case 1: viewStores(esql); break;
-			   		     case 2: viewProducts(esql); break;
-					     case 3: placeOrder(esql); break;
-					     case 4: viewRecentOrders(esql); break;
+				      switch (readChoice()){
+					      case 1: viewStores(esql); break;
+			   		      case 2: viewProducts(esql); break;
+					      case 3: placeOrder(esql); break;
+					      case 4: viewRecentOrders(esql); break;
 
-					     case 20: usermenu = false; loggedInUserID = -1; loggedInUserType = "customer"; break;
-					     default : System.out.println("Unrecognized choice!"); break;
-				     }
+					      case 20: usermenu = false; loggedInUserID = -1; break;
+					      default : System.out.println("Unrecognized choice!"); break;
+				      }
 		      }
               }
             }
@@ -520,9 +519,17 @@ public class Amazon {
 			   System.err.println("Error: Invalid Store ID.");
 			   return;
 		   }
-
 		   int storeID = Integer.parseInt(storeIdInput);
-		   String query = String.format("SELECT productName, numberOfUnits, pricePerUnit FROM Product WHERE storeID = %d", storeID);
+
+		   // Check if the store exists
+		   String query = String.format("SELECT * FROM Store WHERE storeID = %d", storeID);
+		   int storeExists = esql.executeQuery(query);
+		   if (storeExists < 1) {
+			   System.err.println("Error: Store does not exist.");
+			   return;
+		   }
+
+		   query = String.format("SELECT productName, numberOfUnits, pricePerUnit FROM Product WHERE storeID = %d", storeID);
 		   int productCount = esql.executeQueryAndPrintResult(query);
 		   if (productCount == 0) {
 			   System.out.println("No products found for this store.");
@@ -560,15 +567,22 @@ public class Amazon {
 			   return;
 		   }
 		   int units = Integer.parseInt(unitsInput);
+		   
+		   String query = String.format("SELECT * FROM Store WHERE storeID = %d", storeID);
+		   int storeExists = esql.executeQuery(query);
+		   if (storeExists < 1) {
+			   System.err.println("Error: Store does not exist.");
+			   return;
+		   }
 
-		   // Check if the store hass the product and enough stock
-		   String query = String.format("SELECT numberOfUnits FROM Product WHERE storeID = %d AND productName = '%s'", storeID, productName);
+		   // Check if the store has the product
+		   query = String.format("SELECT numberOfUnits FROM Product WHERE storeID = %d AND productName = '%s'", storeID, productName);
 		   List<List<String>> productData = esql.executeQueryAndReturnResult(query);
 		   if (productData.isEmpty()) {
 			   System.err.println("Error: Product not found in the specified store.");
 			   return;
 		   }
-
+		   // Check if the store has enough stock for the order
 		   int availableUnits = Integer.parseInt(productData.get(0).get(0));
 		   if (units > availableUnits) {
 			   System.err.println("Error: Insufficient stock for the product.");
@@ -586,7 +600,89 @@ public class Amazon {
 
 
    public static void viewRecentOrders(Amazon esql) {}
-   public static void updateProduct(Amazon esql) {}
+   
+   /* 
+    * Update product information after validating store ID, product name, new units, and new price.
+    */
+   public static void updateProduct(Amazon esql) {
+	   try {
+		   System.out.print("\tEnter Store ID: ");
+		   String storeIdInput = in.readLine().trim();
+		   if (storeIdInput.isEmpty() || !storeIdInput.matches("\\d+")) {
+			   System.err.println("Error: Invalid Store ID.");
+			   return;
+		   }
+		   int storeID = Integer.parseInt(storeIdInput);
+
+		   System.out.print("\tEnter Product Name: ");
+		   String productName = in.readLine().trim();
+		   if (productName.isEmpty()) {
+			   System.err.println("Error: Invalid Product Name.");
+			   return;
+		   }
+
+		   System.out.print("\tEnter New Number of Units (leave empty if no change): ");
+		   String newUnitsInput = in.readLine().trim();
+		   Integer newUnits = null;
+		   if (!newUnitsInput.isEmpty()) {
+			   if (!newUnitsInput.matches("\\d+") || Integer.parseInt(newUnitsInput) < 0) {
+				   System.err.println("Error: Invalid Number of Units.");
+				   return;
+			   }
+			   newUnits = Integer.parseInt(newUnitsInput);
+		   }
+
+  		   System.out.print("\tEnter New Price Per Unit (leave empty if no change): ");
+		   String newPriceInput = in.readLine().trim();
+		   Integer newPrice = null;
+		   if (!newPriceInput.isEmpty()) {
+			   if (!newPriceInput.matches("\\d+") || Integer.parseInt(newPriceInput) < 0) {
+				   System.err.println("Error: Invalid Price Per Unit.");
+				   return;
+			   }
+			   newPrice = Integer.parseInt(newPriceInput);
+		   }
+
+		   String query = String.format("SELECT * FROM Store WHERE storeID = %d", storeID);
+		   int storeExists = esql.executeQuery(query);
+		   if (storeExists < 1) {
+			   System.err.println("Error: Store does not exist.");
+			   return;
+		   }
+
+		   // Check if the user is the manager of the store
+		   query = String.format("SELECT managerID FROM Store WHERE storeID = %d", storeID);
+		   List<List<String>> managerResults = esql.executeQueryAndReturnResult(query);
+		   if (managerResults.isEmpty() || Integer.parseInt(managerResults.get(0).get(0)) != loggedInUserID) {
+			   System.err.println("Error: You are not the manager of this store.");
+			   return;
+		   }
+
+		   // Check if the product exists in the store
+		   query = String.format("SELECT * FROM Product WHERE storeID = %d AND productName = '%s'", storeID, productName);
+		   int productExists = esql.executeQuery(query);
+		   if (productExists < 1) {
+			   System.err.println("Error: Product not found in the specified store.");
+			   return;
+		   }
+		   
+		   // Only update fields if new values have been provided
+		   List<String> updateParts = new ArrayList<>();
+		   if (newUnits != null) updateParts.add(String.format("numberOfUnits = %d", newUnits));
+		   if (newPrice != null) updateParts.add(String.format("pricePerUnit = %d", newPrice));
+		   if (updateParts.isEmpty()) {
+			   System.out.println("No updates made to the product.");
+			   return;
+		   }
+
+		   query += String.join(", ", updateParts) + String.format(" WHERE storeID = %d AND productName = '%s'", storeID, productName);
+		   esql.executeUpdate(query);
+		   System.out.println("Product information updated successfully!");
+	   } catch (Exception e) {
+		   System.err.println(e.getMessage());
+	   }
+   }
+
    public static void viewRecentUpdates(Amazon esql) {}
    public static void viewPopularProducts(Amazon esql) {}
    public static void viewPopularCustomers(Amazon esql) {}
