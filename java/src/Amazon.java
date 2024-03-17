@@ -361,15 +361,44 @@ public class Amazon {
          String latitude = in.readLine();       //enter lat value between [0.0, 100.0]
          System.out.print("\tEnter longitude: ");  //enter long value between [0.0, 100.0]
          String longitude = in.readLine();
-         
-         String type="Customer";
+	
+	 // Check if password matches name
+	 if (password.equals(name)) {
+		 System.err.println("Error: Password should not be the same as the user name.");
+		 return;
+	 }
 
-			String query = String.format("INSERT INTO USERS (name, password, latitude, longitude, type) VALUES ('%s','%s', %s, %s,'%s')", name, password, latitude, longitude, type);
+	 // Check for password strength
+	 boolean hasUpperCase = !password.equals(password.toLowerCase());
+	 boolean hasNumber = password.matches(".*\\d.*");
+	 boolean hasSpecialChar = !password.matches("[A-Za-z0-9]");
+	 if (password.length() < 5 || !hasUpperCase || !hasNumber || !hasSpecialChar) {
+		 System.err.println("Error: Password must be between 8-11 characters and must have one capital letter, one number, and one special character.");
+		 return;
+	 }
+
+	 // Check if latitude is within the valid range
+	 double lat = Double.parseDouble(latitude);
+	 if(lat <= 0.0 || lat >= 100.0) {
+		 System.err.println("Error: Latitude must be between 0.0 and 100.0.");
+	          return;
+	 }
+	 
+	 // Check if longitude is within the valid range
+	 double lon = Double.parseDouble(longitude);
+	 if(lon <= 0.0 || lon >= 100.0) {
+		 System.err.println("Error: Longitude must be between 0.0 and 100.0.");
+	         return;
+	 }
+
+         String type="Customer";
+	 
+	 String query = String.format("INSERT INTO USERS (name, password, latitude, longitude, type) VALUES ('%s','%s', %s, %s,'%s')", name, password, latitude, longitude, type);
 
          esql.executeUpdate(query);
          System.out.println ("User successfully created!");
       }catch(Exception e){
-         System.err.println (e.getMessage ());
+	      System.err.println(e.getMessage());
       }
    }//end CreateUser
 
@@ -397,7 +426,10 @@ public class Amazon {
    }//end
 
 // Rest of the functions definition go in here
-
+   /*
+    * Displays the list of stores within a 3-mile radius from the user's location.
+    * @return list of stores or null is userId does not exist
+    * */
    public static void viewStores(Amazon esql) {}
    public static void viewProducts(Amazon esql) {}
    public static void placeOrder(Amazon esql) {}
