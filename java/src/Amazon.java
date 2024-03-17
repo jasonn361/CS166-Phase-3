@@ -309,6 +309,7 @@ public class Amazon {
 					      case 20: usermenu = false; loggedInUserID = -1; loggedInUserType = "customer"; break;
 					      default : System.out.println("Unrecognized choice!"); break;
 				      } 
+				      break;
 			      case "customer":
 				      System.out.println("MAIN MENU");
                 		      System.out.println("---------");
@@ -328,6 +329,7 @@ public class Amazon {
 					      case 20: usermenu = false; loggedInUserID = -1; break;
 					      default : System.out.println("Unrecognized choice!"); break;
 				      }
+				      break;
 		      }
               }
             }
@@ -627,20 +629,20 @@ public class Amazon {
 		   if (!newUnitsInput.isEmpty()) {
 			   if (!newUnitsInput.matches("\\d+") || Integer.parseInt(newUnitsInput) < 0) {
 				   System.err.println("Error: Invalid Number of Units.");
-				   return;
+			   	   return;
 			   }
 			   newUnits = Integer.parseInt(newUnitsInput);
 		   }
 
   		   System.out.print("\tEnter New Price Per Unit (leave empty if no change): ");
 		   String newPriceInput = in.readLine().trim();
-		   Integer newPrice = null;
+		   Float newPrice = null;
 		   if (!newPriceInput.isEmpty()) {
-			   if (!newPriceInput.matches("\\d+") || Integer.parseInt(newPriceInput) < 0) {
+			   if (!newPriceInput.matches("[0-9]+(\\.[0-9]{1,2})?")) {
 				   System.err.println("Error: Invalid Price Per Unit.");
 				   return;
 			   }
-			   newPrice = Integer.parseInt(newPriceInput);
+			   newPrice = Float.parseFloat(newPriceInput);
 		   }
 
 		   String query = String.format("SELECT * FROM Store WHERE storeID = %d", storeID);
@@ -666,16 +668,13 @@ public class Amazon {
 			   return;
 		   }
 		   
-		   // Only update fields if new values have been provided
-		   List<String> updateParts = new ArrayList<>();
-		   if (newUnits != null) updateParts.add(String.format("numberOfUnits = %d", newUnits));
-		   if (newPrice != null) updateParts.add(String.format("pricePerUnit = %d", newPrice));
-		   if (updateParts.isEmpty()) {
-			   System.out.println("No updates made to the product.");
-			   return;
-		   }
+		   // Check if there is something to update
+		   List<String> updates = new ArrayList<>();
+		   if (newUnits != null) updates.add("numberOfUnits = " + newUnits);
+		   if (newPrice != null) updates.add("pricePerUnit = " + newPrice);
+		   String updateString = String.join(", ", updates);
 
-		   query += String.join(", ", updateParts) + String.format(" WHERE storeID = %d AND productName = '%s'", storeID, productName);
+		   query = String.format("UPDATE Product SET %s WHERE storeID = %d AND productName = '%s'", updateString, storeID, productName);
 		   esql.executeUpdate(query);
 		   System.out.println("Product information updated successfully!");
 	   } catch (Exception e) {
