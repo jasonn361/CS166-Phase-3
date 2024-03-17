@@ -584,6 +584,7 @@ public class Amazon {
 			   System.err.println("Error: Product not found in the specified store.");
 			   return;
 		   }
+
 		   // Check if the store has enough stock for the order
 		   int availableUnits = Integer.parseInt(productData.get(0).get(0));
 		   if (units > availableUnits) {
@@ -594,7 +595,7 @@ public class Amazon {
 		   // Place the order
 		   query = String.format("INSERT INTO Orders (customerID, storeID, productName, unitsOrdered, orderTime) VALUES (%d, %d, '%s', %d, NOW())", loggedInUserID, storeID, productName, units);
 		   esql.executeUpdate(query);
-		   System.out.println ("Order successfully created!");
+		   System.out.println("Order successfully created!");
 	   } catch(Exception e) {
 		   System.err.println(e.getMessage());
 	   }
