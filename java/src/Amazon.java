@@ -40,6 +40,8 @@ public class Amazon {
    static BufferedReader in = new BufferedReader(
                                 new InputStreamReader(System.in));
 
+   static int loggedInUserID = -1;
+
    /**
     * Creates a new instance of Amazon store
     *
@@ -289,7 +291,7 @@ public class Amazon {
                 System.out.println(".........................");
                 System.out.println("20. Log out");
                 switch (readChoice()){
-                   case 1: viewStores(esql); break;
+                   case 1: viewStores(authorisedUser, esql); break;
                    case 2: viewProducts(esql); break;
                    case 3: placeOrder(esql); break;
                    case 4: viewRecentOrders(esql); break;
@@ -299,7 +301,7 @@ public class Amazon {
                    case 8: viewPopularCustomers(esql); break;
                    case 9: placeProductSupplyRequests(esql); break;
 
-                   case 20: usermenu = false; break;
+                   case 20: usermenu = false; loggedInUserID = -1; break;
                    default : System.out.println("Unrecognized choice!"); break;
                 }
               }
@@ -363,10 +365,10 @@ public class Amazon {
          String longitude = in.readLine();
 	 
 	 // Check for duplicate names
-         String checkQuery = String.format("SELECT * FROM USERS WHERE name = '%s'", name);
-	 int userCount = esql.executeQuery(checkQuery);
-         if(userCount > 0) {
-		 System.out.println("Error: User name already exists.");
+         String query = String.format("SELECT name, password FROM Users WHERE name = '%s'", name);
+	 List<List<String>> userData = esql.executeQueryAndReturnResult(query);
+         if (!userData.isEmpty() && userData.get(0).get(1).equals(password)) {
+		 System.err.println("Error: This user already exists.");
                  return;
          }
 	 
@@ -381,7 +383,7 @@ public class Amazon {
 	 boolean hasNumber = password.matches(".*\\d.*");
 	 boolean hasSpecialChar = !password.matches("[A-Za-z0-9]");
 	 if (password.length() < 5 || !hasUpperCase || !hasNumber || !hasSpecialChar) {
-		 System.err.println("Error: Password must be between 8-11 characters and must have one capital letter, one number, and one special character.");
+		 System.err.println("Error: Password must be between 5-11 characters and must have one capital letter, one number, and one special character.");
 		 return;
 	 }
 
@@ -401,7 +403,7 @@ public class Amazon {
 
          String type="Customer";
 	 
-	 String query = String.format("INSERT INTO USERS (name, password, latitude, longitude, type) VALUES ('%s','%s', %s, %s,'%s')", name, password, latitude, longitude, type);
+	 query = String.format("INSERT INTO Users (name, password, latitude, longitude, type) VALUES ('%s','%s', %s, %s,'%s')", name, password, latitude, longitude, type);
 
          esql.executeUpdate(query);
          System.out.println ("User successfully created!");
@@ -422,10 +424,13 @@ public class Amazon {
          System.out.print("\tEnter password: ");
          String password = in.readLine();
 
-         String query = String.format("SELECT * FROM USERS WHERE name = '%s' AND password = '%s'", name, password);
-         int userNum = esql.executeQuery(query);
-	 if (userNum > 0)
-		return name;
+         String query = String.format("SELECT * FROM Users WHERE name = '%s' AND password = '%s'", name, password);
+         List<List<String>> userIDs = esql.executeQueryAndReturnResult(query);
+	 if (!userIDs.isEmpty()) {
+		 loggedInUserID = Integer.parseInt(userIDs.get(0).get(0));
+		 return name;
+	 }
+	 System.err.println("Error: Login failed.");
          return null;
       }catch(Exception e){
          System.err.println (e.getMessage ());
@@ -434,11 +439,50 @@ public class Amazon {
    }//end
 
 // Rest of the functions definition go in here
+
    /*
     * Displays the list of stores within a 3-mile radius from the user's location.
     * @return list of stores or null is userId does not exist
     * */
-   public static void viewStores(Amazon esql) {}
+   public static void viewStores(String name, Amazon esql) {
+	   try {
+		   // Get current user's location
+		   String query = String.format("SELECT latitude, longitude FROM Users WHERE userID = '%s'", loggedInUserID);
+		   List<List<String>> userData = esql.executeQueryAndReturnResult(query);
+		   if (userData.isEmpty()) {
+			   System.err.println("User not found");
+			   return;
+		   }
+		   double userLat = Double.parseDouble(userData.get(0).get(0));
+		   double userLong = Double.parseDouble(userData.get(0).get(1));
+
+		   // Retrieve all stores
+		   query = "SELECT storeID, latitude, longitude FROM Store";
+		   List<List<String>> storeData = esql.executeQueryAndReturnResult(query);
+
+		   System.out.println("Stores within 30 miles:");
+		   boolean found = false;
+		   for (List<String> store : storeData) {
+			   int storeID = Integer.parseInt(store.get(0));
+			   double storeLat = Double.parseDouble(store.get(1));
+			   double storeLong = Double.parseDouble(store.get(2));
+
+			   // Calculate distance
+			   double distance = esql.calculateDistance(userLat, userLong, storeLat, storeLong);
+			   if (distance <= 30.0) {
+				   found =true;
+				   System.out.println("Store ID: " + storeID + " | Distance: " + distance + " miles");
+			   }
+		   }
+		   if (!found) {
+			   System.err.println("Error: No stores found within 30 miles.");
+		   }
+	   } catch(Exception e) {
+		   System.err.println(e.getMessage());
+	   }
+   }
+
+
    public static void viewProducts(Amazon esql) {}
    public static void placeOrder(Amazon esql) {}
    public static void viewRecentOrders(Amazon esql) {}
