@@ -291,7 +291,7 @@ public class Amazon {
                 System.out.println(".........................");
                 System.out.println("20. Log out");
                 switch (readChoice()){
-                   case 1: viewStores(authorisedUser, esql); break;
+                   case 1: viewStores(esql); break;
                    case 2: viewProducts(esql); break;
                    case 3: placeOrder(esql); break;
                    case 4: viewRecentOrders(esql); break;
@@ -444,7 +444,7 @@ public class Amazon {
     * Displays the list of stores within a 3-mile radius from the user's location.
     * @return list of stores or null is userId does not exist
     * */
-   public static void viewStores(String name, Amazon esql) {
+   public static void viewStores(Amazon esql) {
 	   try {
 		   // Get current user's location
 		   String query = String.format("SELECT latitude, longitude FROM Users WHERE userID = '%s'", loggedInUserID);
@@ -482,7 +482,9 @@ public class Amazon {
 	   }
    }
 
-
+   /*
+    *  View products available in a specific store. Validate the store ID input
+    *  @
    public static void viewProducts(Amazon esql) {}
    public static void placeOrder(Amazon esql) {}
    public static void viewRecentOrders(Amazon esql) {}
