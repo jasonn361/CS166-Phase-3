@@ -230,28 +230,7 @@ public class Amazon {
       }//end try
    }//end cleanup
 
-   /*
-    * Menu for admins 
-    */
-   public static void adminMenu(Amazon esql) {
-	   	   try {
-			while (true) {
-				switch (readChoice()){
-					case 1: viewAllUsers(esql); break;
-			                case 2: updateUserInfo(esql); break;
-			        	case 3: viewAllProducts(esql); break;
-					case 4: updateProductInfo(esql); break;
-
-					case 20: loggedInUserID = -1; loggedInUserType = "customer"; break;
-					default : System.out.println("Unrecognized choice!"); break;
-				} 
-			}
-		} catch (Exception e) {
-			System.err.println(e.getMessage());
-		}
-   }
-
-   /**
+    /**
     * The main execution method
     *
     * @param args the command line arguments this inclues the <mysql|pgsql> <login file>
