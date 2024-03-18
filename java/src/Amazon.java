@@ -9,7 +9,6 @@
  * Target DBMS: 'Postgres'
  *
  */
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -23,6 +22,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 /**
  * This class defines a simple embedded SQL utility class that is designed to
