@@ -299,30 +299,26 @@ public class Amazon {
 			      case "manager":
 				      System.out.println("MAIN MENU");
                 		      System.out.println("---------");
-				      System.out.println("1. View Stores within 30 miles");
-				      System.out.println("2. View Product List");
-				      System.out.println("3. Place a Order");
-			              System.out.println("4. View 5 recent orders");
+				      System.out.println("1. View Product List");
+			              System.out.println("2. View 5 recent orders");
 
 			   	      //the following functionalities basically used by managers
-				      System.out.println("5. Update Product");
-				      System.out.println("6. View 5 recent Product Updates Info");
-			              System.out.println("7. View 5 Popular Items");
-			              System.out.println("8. View 5 Popular Customers");
-			              System.out.println("9. Place Product Supply Request to Warehouse");
+				      System.out.println("3. Update Product");
+				      System.out.println("4. View 5 recent Product Updates Info");
+			              System.out.println("5. View 5 Popular Items");
+			              System.out.println("6. View 5 Popular Customers");
+			              System.out.println("7. Place Product Supply Request to Warehouse");
 
 				      System.out.println(".........................");
 				      System.out.println("20. Log out");
 				      switch (readChoice()){
-					      case 1: viewStores(esql); break;
-			   		      case 2: viewProducts(esql); break;
-					      case 3: placeOrder(esql); break;
-					      case 4: viewRecentOrders(esql); break;
-					      case 5: updateProduct(esql); break;
-					      case 6: viewRecentUpdates(esql); break;
-					      case 7: viewPopularProducts(esql); break;
-					      case 8: viewPopularCustomers(esql); break;
-					      case 9: placeProductSupplyRequests(esql); break;
+			   		      case 1: viewProducts(esql); break;
+					      case 2: viewRecentOrders(esql); break;
+					      case 3: updateProduct(esql); break;
+					      case 4: viewRecentUpdates(esql); break;
+					      case 5: viewPopularProducts(esql); break;
+					      case 6: viewPopularCustomers(esql); break;
+					      case 7: placeProductSupplyRequests(esql); break;
 
 					      case 20: usermenu = false; loggedInUserID = -1; loggedInUserType = "customer"; break;
 					      default : System.out.println("Unrecognized choice!"); break;
@@ -532,30 +528,69 @@ public class Amazon {
     * View products available in a specific store. Validate the store ID input
     */
    public static void viewProducts(Amazon esql) {
-	   try {
-		   System.out.print("\tEnter Store ID: ");
-		   String storeIdInput = in.readLine().trim();
-		   if (storeIdInput.isEmpty() || !storeIdInput.matches("\\d+")) { // Checks if input is a number
-			   System.err.println("Error: Invalid Store ID.");
-			   return;
-		   }
-		   int storeID = Integer.parseInt(storeIdInput);
+	   switch (loggedInUserType) {
+		   case "customer":
+			   try {
+				   System.out.print("\tEnter Store ID: ");
+				   String storeIdInput = in.readLine().trim();
+				   if (storeIdInput.isEmpty() || !storeIdInput.matches("\\d+")) { // Checks if input is a number
+					   System.err.println("Error: Invalid Store ID.");
+					   return;
+				   }
+				   int storeID = Integer.parseInt(storeIdInput);
 
-		   // Check if the store exists
-		   String query = String.format("SELECT * FROM Store WHERE storeID = %d", storeID);
-		   int storeExists = esql.executeQuery(query);
-		   if (storeExists < 1) {
-			   System.err.println("Error: Store does not exist.");
-			   return;
-		   }
+				   // Check if the store exists
+				   String query = String.format("SELECT * FROM Store WHERE storeID = %d", storeID);
+				   int storeExists = esql.executeQuery(query);
+				   if (storeExists < 1) {
+					   System.err.println("Error: Store does not exist.");
+					   return;
+				   }
 
-		   query = String.format("SELECT productName, numberOfUnits, pricePerUnit FROM Product WHERE storeID = %d", storeID);
-		   int productCount = esql.executeQueryAndPrintResult(query);
-		   if (productCount == 0) {
-			   System.out.println("No products found for this store.");
-		   }
-	   } catch(Exception e) {
-		   System.err.println(e.getMessage());
+				   query = String.format("SELECT productName, numberOfUnits, pricePerUnit FROM Product WHERE storeID = %d", storeID);
+				   int productCount = esql.executeQueryAndPrintResult(query);
+				   if (productCount == 0) {
+					   System.out.println("No products found for this store.");
+				   }
+			   } catch(Exception e) {
+				   System.err.println(e.getMessage());
+			   }
+			   break;
+		   case "manager":
+			   try {
+				   System.out.print("\tEnter Store ID: ");
+				   String storeIdInput = in.readLine().trim();
+				   if (storeIdInput.isEmpty() || !storeIdInput.matches("\\d+")) { // Checks if input is a number
+					   System.err.println("Error: Invalid Store ID.");
+					   return;
+				   }
+				   int storeID = Integer.parseInt(storeIdInput);
+
+				   // Check if the store exists
+				   String query = String.format("SELECT * FROM Store WHERE storeID = %d", storeID);
+				   int storeExists = esql.executeQuery(query);
+				   if (storeExists < 1) {
+					   System.err.println("Error: Store does not exist.");
+					   return;
+				   }
+			           
+				   // Check if the user is the manager of the store
+				   query = String.format("SELECT managerID FROM Store WHERE storeID = %d", storeID);
+				   List<List<String>> managerResults = esql.executeQueryAndReturnResult(query);
+				   if (managerResults.isEmpty() || Integer.parseInt(managerResults.get(0).get(0)) != loggedInUserID) {
+					   System.err.println("Error: You are not the manager of this store.");
+					   return;
+				   }
+
+				   query = String.format("SELECT productName, numberOfUnits, pricePerUnit FROM Product WHERE storeID = %d", storeID);
+				   int productCount = esql.executeQueryAndPrintResult(query);
+				   if (productCount == 0) {
+					   System.out.println("No products found for this store.");
+				   }
+			   } catch(Exception e) {
+				   System.err.println(e.getMessage());
+			   }
+			   break;
 	   }
    }
 
@@ -620,7 +655,44 @@ public class Amazon {
    }
 
 
-   public static void viewRecentOrders(Amazon esql) {}
+   public static void viewRecentOrders(Amazon esql) {
+	   switch (loggedInUserType) {
+		   case "manager":
+			   try {
+				   String query = "SELECT o.orderNumber, u.name, o.storeID, o.productName, o.unitsOrdered, o.orderTime FROM Orders o INNER JOIN Users u ON o.customerID = u.userID ORDER BY o.orderTime DESC LIMIT 5";
+				   List<List<String>> orderLog = esql.executeQueryAndReturnResult(query); 
+				   if (orderLog.isEmpty()) {
+					   System.out.println("No recent orders found.");
+					   return;
+				   }
+
+				   System.out.printf("%-20s %-20s %-20s %-20s %-20s %-20s\n", "Order Number", "Customer Name", "Store ID", "Product Name", "Units Ordered", "Order Time");
+				   for (List<String> order : orderLog) {
+					   System.out.printf("%-20s %-20s %-20s %-20s %-20s %-20s\n", order.get(0), order.get(1), order.get(2), order.get(3), order.get(4), order.get(5));
+				   }
+			   } catch (Exception e) {
+				   System.err.println(e.getMessage());
+			   }
+			   break;
+		   case "customer":
+			   try {
+				   String query = String.format("SELECT * FROM Orders WHERE customerID = %d ORDER BY orderTime DESC LIMIT 5", loggedInUserID);
+				   List<List<String>> orderLog = esql.executeQueryAndReturnResult(query); 
+				   if (orderLog.isEmpty()) {
+					   System.out.println("No recent orders found.");
+					   return;
+				   }
+				   System.out.printf("%-20s %-20s %-20s %-20s\n", "Store ID", "Product Name", "Units Ordered", "Order Time");
+				   for (List<String> order : orderLog) {
+					   System.out.printf("%-20s %-20s %-20s %-20s\n", order.get(2), order.get(3), order.get(4), order.get(5));
+				   }
+			   } catch (Exception e) {
+				   System.err.println(e.getMessage());
+			   }
+			   break;
+	   }
+   }
+
    
    /* 
     * Update product information after validating store ID, product name, new units, and new price.
@@ -718,9 +790,9 @@ public class Amazon {
 			   return;
 		   }
 
-		   System.out.printf("%-20s %-20s %-20s %-20s\n", "Update Number", "Store ID", "Product Name", "Updated On");
+		   System.out.printf("%-20s %-20s %-20s %-20s %-20s\n", "Update Number", "Store ID", "Manager ID", "Product Name", "Updated On");
 		   for (List<String> update : updateLog) {
-			   System.out.printf("%-20s %-20s %-20s %-20s\n", update.get(0), update.get(2), update.get(3), update.get(4));
+			   System.out.printf("%-20s %-20s %-20s %-20s %-20s\n", update.get(0), update.get(2), update.get(1), update.get(3), update.get(4));
 		   }
 	   } catch (Exception e) {
 		   System.err.println(e.getMessage());
