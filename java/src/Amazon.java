@@ -921,24 +921,17 @@ public class Amazon {
   public static void viewPopularProducts(Amazon esql) {
 
     try {
-
-      Scanner scanner = new Scanner(System.in); // Create a Scanner object
-
-      System.out.println("Enter managerID: "); // Prompt for managerID
-
-      int managerID = scanner.nextInt(); // Read user input for managerID
-
       // Check if the managerID exists and is associated with any stores
 
       String checkManagerQuery =
-          "SELECT COUNT(*) FROM Store WHERE managerID = " + managerID;
+          "SELECT COUNT(*) FROM Store WHERE managerID = " + loggedInUserID;
 
       int managerCount = esql.executeQueryAndReturnResult(checkManagerQuery)
                              .size(); // Execute query and get the result size
 
       if (managerCount <= 0) {
 
-        System.err.println("Error: No stores found for managerID " + managerID +
+        System.err.println("Error: No stores found for managerID " + loggedInUserID +
                            ". Please enter a valid managerID.");
 
         return; // Exit the function if no valid managerID is found
@@ -956,7 +949,7 @@ public class Amazon {
           "JOIN Store S ON P.storeID = S.storeID "
           +
 
-          "WHERE S.managerID = " + managerID + " "
+          "WHERE S.managerID = " + loggedInUserID + " "
           +
 
           "GROUP BY P.productName "
@@ -966,7 +959,7 @@ public class Amazon {
 
       esql.executeQueryAndPrintResult(query);
 
-      System.out.println("Top 5 popular products for manager " + managerID +
+      System.out.println("Top 5 popular products for manager " + loggedInUserID +
                          " retrieved successfully.");
 
     } catch (java.util.InputMismatchException ime) {
@@ -988,12 +981,6 @@ public class Amazon {
 
     try {
 
-      Scanner scanner = new Scanner(System.in); // Create a Scanner object
-
-      System.out.println("Enter managerID: "); // Prompt for managerID
-
-      int managerID = scanner.nextInt(); // Read user input for managerID
-
       // Corrected query
 
       String query = "SELECT O.customerID, COUNT(*) AS orderCount "
@@ -1002,7 +989,7 @@ public class Amazon {
                      "FROM Orders O JOIN Store S ON O.storeID = S.storeID "
                      +
 
-                     "WHERE S.managerID = " + managerID + " "
+                     "WHERE S.managerID = " + loggedInUserID + " "
                      +
 
                      "GROUP BY O.customerID "
@@ -1012,7 +999,7 @@ public class Amazon {
 
       esql.executeQueryAndPrintResult(query);
 
-      System.out.println("Top 5 customers for manager " + managerID +
+      System.out.println("Top 5 customers for manager " + loggedInUserID +
                          " retrieved successfully.");
 
     } catch (Exception e) {
@@ -1031,16 +1018,10 @@ public class Amazon {
 
     try {
 
-      // Prompt for Manager ID
-
-      System.out.print("Enter your Manager ID: ");
-
-      int managerID = Integer.parseInt(in.readLine());
-
       // Verify the user is a manager and get the associated storeID
 
       String checkManagerAndStoreQuery =
-          "SELECT s.storeID FROM Store s WHERE s.managerID = " + managerID;
+          "SELECT s.storeID FROM Store s WHERE s.managerID = " + loggedInUserID;
 
       List<List<String>> storeIDs =
           esql.executeQueryAndReturnResult(checkManagerAndStoreQuery);
@@ -1083,7 +1064,7 @@ public class Amazon {
 
       String insertRequestQuery = String.format(
           "INSERT INTO ProductSupplyRequests (managerID, warehouseID, storeID, productName, unitsRequested) VALUES (%d, %d, %d, '%s', %d)",
-          managerID, warehouseID, storeID, productName, unitsNeeded);
+          loggedInUserID, warehouseID, storeID, productName, unitsNeeded);
 
       esql.executeUpdate(insertRequestQuery);
 
