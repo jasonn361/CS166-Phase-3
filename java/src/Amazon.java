@@ -783,16 +783,16 @@ public class Amazon {
     */
    public static void viewRecentUpdates(Amazon esql) {
 	   try {
-		   String query = String.format("SELECT * FROM ProductUpdates WHERE managerID = %d ORDER BY updatedOn DESC LIMIT 5", loggedInUserID);
+		   String query = String.format("SELECT updateNumber, storeID, u.name, productName, updatedOn FROM ProductUpdates INNER JOIN Users u ON managerID = u.userID WHERE managerID = %d ORDER BY updatedOn DESC LIMIT 5", loggedInUserID);
 		   List<List<String>> updateLog = esql.executeQueryAndReturnResult(query);
 		   if (updateLog.isEmpty()) {
 			   System.out.println("No recent updates found.");
 			   return;
 		   }
 
-		   System.out.printf("%-20s %-20s %-20s %-20s %-20s\n", "Update Number", "Store ID", "Manager ID", "Product Name", "Updated On");
+		   System.out.printf("%-20s %-20s %-20s %-20s %-20s\n", "Update Number", "Store ID", "Manager Name", "Product Name", "Updated On");
 		   for (List<String> update : updateLog) {
-			   System.out.printf("%-20s %-20s %-20s %-20s %-20s\n", update.get(0), update.get(2), update.get(1), update.get(3), update.get(4));
+			   System.out.printf("%-20s %-20s %-20s %-20s %-20s\n", update.get(0), update.get(1), update.get(2), update.get(3), update.get(4));
 		   }
 	   } catch (Exception e) {
 		   System.err.println(e.getMessage());
@@ -940,24 +940,6 @@ public class Amazon {
 			   return;
 		   }
 
-		   System.out.print("\tEnter New Store ID (leave empty if no change): ");
-		   String newStoreIdInput = in.readLine().trim();
-		   Integer newStoreID = null;
-		   if (!newStoreIdInput.isEmpty()) {
-			   if (!newStoreIdInput.matches("\\d+") || Integer.parseInt(newStoreIdInput) < 0) {
-				   System.err.println("Error: Invalid Store ID.");
-			   	   return;
-			   }
-			   newStoreID = Integer.parseInt(newStoreIdInput);
-		   }
-
-		   System.out.print("\tEnter New Product Name (leave empty if no change): ");
-		   String newProductNameInput = in.readLine().trim();
-		   String newProductName = null;
-		   if (!newProductNameInput.isEmpty()) {
-			   newProductName = newProductNameInput;
-		   }
-
 		   System.out.print("\tEnter New Number of Units (leave empty if no change): ");
 		   String newUnitsInput = in.readLine().trim();
 		   Integer newUnits = null;
@@ -987,15 +969,6 @@ public class Amazon {
 			   return;
 		   }
 
-		   if (!newStoreIdInput.isEmpty()) {
-			   query = String.format("SELECT * FROM Store WHERE storeID = %d", newStoreID);
-			   storeExists = esql.executeQuery(query);
-			   if (storeExists < 1) {
-				   System.err.println("Error: New Store does not exist.");
-				   return;
-			   }
-		   }
-
 		   // Check if the current product exists in the current store
 		   query = String.format("SELECT * FROM Product WHERE storeID = %d AND productName = '%s'", storeID, productName);
 		   int productExists = esql.executeQuery(query);
@@ -1004,30 +977,8 @@ public class Amazon {
 			   return;
 		   }
 
-		   // Check if the new store already has the current product
-		   if (!newStoreIdInput.isEmpty() && newProductNameInput.isEmpty()) {
-			   query = String.format("SELECT * FROM Product WHERE storeID = %d AND productName = '%s'", newStoreID, productName);
-			   productExists = esql.executeQuery(query);
-			   if (productExists > 0) {
-				   System.err.println("Error: New Store already has the product with the same name.");
-				   return;
-			   }
-		   } 
-
-		   // Check if the new or current store has a product wiht the new name
-		   if (!newProductName.equals(productName) || !newStoreIdInput.isEmpty()) {
-			   query = String.format("SELECT * FROM Product WHERE storeID IN (%d, %d) AND productName = '%s'", storeID, newStoreID, newProductName);
-			   productExists = esql.executeQuery(query);
-			   if (productExists > 0) {
-				   System.err.println("Error: One of the stores already has a product with the new name.");
-				   return;
-			   }
-		   }
-		   
 		   // Check if there is something to update
 		   List<String> updates = new ArrayList<>();
-		   if (newStoreID != null) updates.add("storeID = " + newStoreID);
-		   if (newProductName != null) updates.add("productName = " + newProductName);
 		   if (newUnits != null) updates.add("numberOfUnits = " + newUnits);
 		   if (newPrice != null) updates.add("pricePerUnit = " + newPrice);
 
